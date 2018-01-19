@@ -1,0 +1,44 @@
+autoload -Uz vcs_info
+
+zstyle ':vcs_info:*' stagedstr '%F{28}●'
+zstyle ':vcs_info:*' unstagedstr '%F{11}●'
+zstyle ':vcs_info:*' get-revision true
+zstyle ':vcs_info:*' check-for-changes true
+zstyle ':vcs_info:(sv[nk]|bzr):*' branchformat '%b%F{1}:%F{11}%r'
+zstyle ':vcs_info:*' enable git svn
+zstyle ':vcs_info:git*+set-message:*' hooks git-aheadbehind git-untracked git-message git-stash
+
+function +vi-git-aheadbehind() {
+  local ahead behind
+  local -a gitstatus
+
+  behind=$(git rev-list HEAD..${hook_com[branch]}@{upstream} 2>/dev/null | wc -l)
+  behind="$(echo -e "${behind}" | sed -e 's/^[[:space:]]*//')"
+  (( $behind )) && gitstatus+=("%F{red}↓${behind}%f")
+
+
+  ahead=$(git rev-list ${hook_com[branch]}@{upstream}..HEAD 2>/dev/null | wc -l)
+  ahead="$(echo -e "${ahead}" | sed -e 's/^[[:space:]]*//')"
+  (( $ahead )) && gitstatus+=( "%F{blue}↑${ahead}%f" )
+
+  hook_com[misc]+=${gitstatus}
+
+  if [[ -n ${hook_com[misc]} ]]; then
+    hook_com[misc]="${hook_com[misc]}"
+  fi
+}
+
+precmd () {
+
+    if [[ -z $(git ls-files --other --exclude-standard 2> /dev/null) ]] {
+        zstyle ':vcs_info:*' formats ' %F{green}%b %c%u% %m'
+    } else {
+        zstyle ':vcs_info:*' formats ' %F{green}%b %c%u%F{red}● %m'
+    }
+
+    vcs_info
+}
+
+setopt prompt_subst
+PROMPT='%F{blue}%n %F{white}%c${vcs_info_msg_0_}%F{blue} %{$reset_color%}
+%F{magenta}%@ %F{white}>>>> '
